@@ -3,6 +3,8 @@ package main
 import (
   "net/http"
   "encoding/json"
+  "strings"
+  "slices"
 )
 
 func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
@@ -11,7 +13,7 @@ func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
   }
 
   type returnVals struct {
-    Valid bool `json:"valid"`
+    CleanedBody string `json:"cleaned_body"`
   }
 
   decoder := json.NewDecoder(r.Body)
@@ -27,8 +29,17 @@ func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
     respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
     return
   }
+  
+  splittedBody := strings.Split(params.Body, " ")
 
+  forbidden_words := []string{"kerfuffle", "sharbert", "fornax"}
+  for i := 0; i < len(splittedBody); i++ {
+    if slices.Contains(forbidden_words, strings.ToLower(splittedBody[i])) {
+      splittedBody[i] = "****"
+    }
+  }
+  
   respondWithJSON(w, http.StatusOK, returnVals{
-    Valid: true,
+    CleanedBody: strings.Join(splittedBody, " "),
   })
 }
