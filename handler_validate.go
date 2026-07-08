@@ -4,7 +4,6 @@ import (
   "net/http"
   "encoding/json"
   "strings"
-  "slices"
 )
 
 func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
@@ -30,16 +29,27 @@ func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
     return
   }
   
-  splittedBody := strings.Split(params.Body, " ")
-
-  forbidden_words := []string{"kerfuffle", "sharbert", "fornax"}
-  for i := 0; i < len(splittedBody); i++ {
-    if slices.Contains(forbidden_words, strings.ToLower(splittedBody[i])) {
-      splittedBody[i] = "****"
-    }
+  badWords := map[string]struct{}{
+    "kerfuffle": {},
+    "sharbert":  {},
+    "fornax":    {},
   }
+  cleaned := getCleanedBody(params.Body, badWords)
   
   respondWithJSON(w, http.StatusOK, returnVals{
-    CleanedBody: strings.Join(splittedBody, " "),
+    CleanedBody: cleaned,
   })
 }
+
+func getCleanedBody(body string, badWords map[string]struct{}) string {
+  words := strings.Split(body, " ")
+  for i, word := range words {
+    loweredWord := strings.ToLower(word)
+    if _, ok := badWords[loweredWord]; ok {
+      words[i] = "****"
+    }
+  }
+  cleaned := strings.Join(words, " ")
+  return cleaned
+}
+
