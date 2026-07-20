@@ -1,9 +1,13 @@
 package main
 
+import _ "github.com/lib/pq"
 import (
   "log"
   "net/http"
   "sync/atomic"
+  "godotenv"
+  "os"
+  "database/sql"
 )
 
 type apiConfig struct {
@@ -11,11 +15,23 @@ type apiConfig struct {
 }
 
 func main() {
+  godotenv.Load()
+
+  dbURL := os.Getenv("DB_URL")
+
+  db, err := sql.Open("postgres", dbURL)
+  if err != nil {
+    log.Printf("Can't open db url: %v", err)
+    return
+  }
+  dbQueries := database.New(db)
+
   const filepathRoot = "."
   const port = "8080"
 
   apiCfg := apiConfig{
     fileserverHits: atomic.Int32{},
+    dbQueries: *database.Queries
   }
 
   mux := http.NewServeMux()
@@ -34,7 +50,7 @@ func main() {
     Handler:    mux,
   }
 
-  log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
+  log.Printf("Serving files on port: %s\n", port)
   log.Fatal(srv.ListenAndServe())
 }
 
